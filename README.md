@@ -39,7 +39,9 @@ Two commitments make this load-bearing:
 
 ## Status
 
-Milestone M0 (scaffolding) — current. See [the milestone plan](#milestones) below.
+Milestone M1 (thin vertical slice) — current. One fact clause (C1: advisor dual-role) and one
+judgment clause (C3: suitability) are wired end-to-end through the engine and the CLI prints a
+real verdict and a real evidence trace. See [the milestone plan](#milestones) below.
 
 ## Run (once M1 lands)
 
@@ -58,7 +60,7 @@ See [`docs/architecture.md`](docs/architecture.md) (TODO) and the ADRs in
 ## Milestones
 
 - [x] **M0** — scaffolding, license, ADRs, importability test
-- [ ] **M1** — thin vertical slice (1 fact clause + 1 judgment clause → verdict + trace, CLI)
+- [x] **M1** — thin vertical slice (1 fact clause + 1 judgment clause → verdict + trace, CLI)
 - [ ] **M2** — complete the 4-clause seed policy + all 4 example cases
 - [ ] **M3** — ensemble-agreement confidence estimator
 - [ ] **M4** — web UI that shows the decision assembling

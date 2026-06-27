@@ -1,11 +1,8 @@
-"""Public API surface. M0 stub — real implementation lands in M1."""
+"""Public API surface — the stable entry point.
 
-from typing import Any
+External consumers should import only from this module (re-exported via `nspk.__init__`).
+"""
 
+from nspk.engine.evaluator import evaluate
 
-def evaluate(case: Any, policy: Any, llm: Any = None) -> Any:
-    """Evaluate a case against a policy. Returns a Decision (verdict + trace).
-
-    M0 stub. Real implementation in M1.
-    """
-    raise NotImplementedError("evaluate() will be implemented in M1")
+__all__ = ["evaluate"]

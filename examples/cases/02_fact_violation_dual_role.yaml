@@ -1,0 +1,20 @@
+id: 02_fact_violation_dual_role
+description: >
+  Same advisor opens AND funds the same account (a dual-role fact violation).
+  The recommendation itself is suitable — only the fact clause fires.
+events:
+  - actor_id: advisor_a
+    action: open_account
+    account_id: acc_002
+    timestamp: "2026-06-01T11:00:00Z"
+  - actor_id: advisor_a
+    action: fund_account
+    account_id: acc_002
+    timestamp: "2026-06-01T11:05:00Z"
+client:
+  id: client_002
+  risk_profile: conservative
+recommendation:
+  text: |
+    Recommending a 30/70 portfolio of investment-grade municipal bonds and dividend ETFs
+    aligned with your conservative profile.

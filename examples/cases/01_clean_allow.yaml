@@ -1,0 +1,18 @@
+id: 01_clean_allow
+description: Two different advisors handle account open and fund; recommendation is suitable.
+events:
+  - actor_id: advisor_a
+    action: open_account
+    account_id: acc_001
+    timestamp: "2026-06-01T10:00:00Z"
+  - actor_id: advisor_b
+    action: fund_account
+    account_id: acc_001
+    timestamp: "2026-06-01T10:05:00Z"
+client:
+  id: client_001
+  risk_profile: moderate
+recommendation:
+  text: |
+    Recommending a balanced 60/40 portfolio of broad-market index ETFs aligned with your
+    moderate risk tolerance and 10-year horizon.

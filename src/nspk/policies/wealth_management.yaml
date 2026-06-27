@@ -1,0 +1,36 @@
+name: wealth_management_v1
+description: >
+  Wealth-management conduct policy demonstrator. M1 ships clauses C1 (fact) and C3 (judgment);
+  M2 adds the settlement-window fact and the no-exploitation-of-distress judgment.
+
+clauses:
+  - id: C1_dual_role
+    type: fact
+    description: One advisor may not both open and fund the same account.
+    evaluator: advisor_dual_role
+    bindings:
+      - when: { violated: true }
+        action: block
+      # else implicit allow
+
+  - id: C3_suitability
+    type: judgment
+    description: Recommendation must suit the client's risk profile.
+    schema: suitability
+    prompt: |
+      You are a financial-conduct evaluator. Given a client's risk profile and a recommendation,
+      label whether the recommendation suits that risk profile.
+      - suitable: "true" if it does.
+      - suitable: "false" if it does not.
+      - suitable: "unclear" if the information is insufficient.
+      - rationale: one short sentence (max 30 words). Do NOT propose any action.
+      You are labelling, not deciding.
+    bindings:
+      - when: { suitable: "false", confidence_gte: 0.8 }
+        action: block
+      - when: { suitable: "false" }
+        action: route_to_review
+      - when: { suitable: "unclear" }
+        action: route_to_review
+      - when: { suitable: "true" }
+        action: allow
