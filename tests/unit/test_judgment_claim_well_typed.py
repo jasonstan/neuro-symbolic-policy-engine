@@ -4,8 +4,7 @@ wrong. The schema constrains form, not truth — see ADR-0002 and CLAUDE.md."""
 import pytest
 
 from nspk import evaluate
-from nspk.judgments.suitability import SuitabilityClaim
-from nspk.rails.llm_client import FakeLLM
+from nspk.rails.llm_client import build_scripted_fake_llm
 
 
 def _judgment_step(decision, clause_id: str):
@@ -50,16 +49,22 @@ def test_engine_rejects_judgment_clauses_without_an_llm(case_clean_allow, policy
 
 
 def test_fake_llm_records_calls(case_clean_allow, policy):
-    fake = FakeLLM(response=SuitabilityClaim(suitable="unclear", rationale="r"))
+    fake = build_scripted_fake_llm({
+        "suitability": {"suitable": "unclear", "rationale": "r"},
+        "no_exploitation": {"exploits_distress": "false", "rationale": "r"},
+    })
     evaluate(case=case_clean_allow, policy=policy, llm=fake)
-    assert len(fake.calls) == 1
-    assert fake.calls[0]["schema"] == "SuitabilityClaim"
+    # Bundled policy invokes both judgment clauses ⇒ FakeLLM is called twice.
+    assert len(fake.calls) == 2
+    schemas_called = {c["schema"] for c in fake.calls}
+    assert schemas_called == {"SuitabilityClaim", "NoExploitationClaim"}
 
 
 def test_unclear_claim_routes_to_review(case_clean_allow, policy):
-    fake = FakeLLM(
-        response=SuitabilityClaim(suitable="unclear", rationale="ambiguous")
-    )
+    fake = build_scripted_fake_llm({
+        "suitability": {"suitable": "unclear", "rationale": "ambiguous"},
+        "no_exploitation": {"exploits_distress": "false", "rationale": "no distress"},
+    })
     decision = evaluate(case=case_clean_allow, policy=policy, llm=fake)
     js = _judgment_step(decision, "C3_suitability")
     # Per the policy YAML, {suitable: unclear} → route_to_review.

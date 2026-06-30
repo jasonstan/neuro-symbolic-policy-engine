@@ -52,9 +52,10 @@ def _case() -> Case:
 
 def run() -> EvalResult:
     policy = load_bundled_policy("wealth_management")
-    llm = build_scripted_fake_llm(
-        {"suitability": {"suitable": "true", "rationale": "ok"}}
-    )
+    llm = build_scripted_fake_llm({
+        "suitability": {"suitable": "true", "rationale": "ok"},
+        "no_exploitation": {"exploits_distress": "false", "rationale": "no distress"},
+    })
     decision = evaluate(case=_case(), policy=policy, llm=llm)
 
     failures: list[str] = []

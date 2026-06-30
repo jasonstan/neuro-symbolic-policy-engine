@@ -61,9 +61,10 @@ def _step_two() -> Case:
 
 def run() -> EvalResult:
     policy = load_bundled_policy("wealth_management")
-    llm = build_scripted_fake_llm(
-        {"suitability": {"suitable": "true", "rationale": "matches stated profile"}}
-    )
+    llm = build_scripted_fake_llm({
+        "suitability": {"suitable": "true", "rationale": "matches stated profile"},
+        "no_exploitation": {"exploits_distress": "false", "rationale": "no distress signals"},
+    })
 
     d1 = evaluate(case=_step_one(), policy=policy, llm=llm)
     d2 = evaluate(case=_step_two(), policy=policy, llm=llm)

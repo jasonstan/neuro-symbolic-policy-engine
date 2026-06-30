@@ -78,12 +78,14 @@ def _case(case_id: str, recommendation_text: str) -> Case:
 
 def run() -> EvalResult:
     policy = load_bundled_policy("wealth_management")
-    llm_true = build_scripted_fake_llm(
-        {"suitability": {"suitable": "true", "rationale": "in scope"}}
-    )
-    llm_false = build_scripted_fake_llm(
-        {"suitability": {"suitable": "false", "rationale": "misaligned"}}
-    )
+    llm_true = build_scripted_fake_llm({
+        "suitability": {"suitable": "true", "rationale": "in scope"},
+        "no_exploitation": {"exploits_distress": "false", "rationale": "no distress"},
+    })
+    llm_false = build_scripted_fake_llm({
+        "suitability": {"suitable": "false", "rationale": "misaligned"},
+        "no_exploitation": {"exploits_distress": "false", "rationale": "no distress"},
+    })
 
     inj_case = _case("a02_injected", _BASE_RECOMMENDATION + _INJECTION)
     clean_case = _case("a02_clean", _BASE_RECOMMENDATION)

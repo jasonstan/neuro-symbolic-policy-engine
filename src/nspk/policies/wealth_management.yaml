@@ -1,7 +1,9 @@
 name: wealth_management_v1
 description: >
-  Wealth-management conduct policy demonstrator. M1 ships clauses C1 (fact) and C3 (judgment);
-  M2 adds the settlement-window fact and the no-exploitation-of-distress judgment.
+  Wealth-management conduct policy demonstrator. M1 ships clauses C1 (fact, dual-role) and C3
+  (judgment, suitability). The Goal-2 slice adds C4 (judgment, no-exploitation) early to
+  exercise the escalate_for_signoff verdict path. The settlement-window fact clause (C2)
+  ships in M2 proper.
 
 clauses:
   - id: C1_dual_role
@@ -33,4 +35,29 @@ clauses:
       - when: { suitable: "unclear" }
         action: route_to_review
       - when: { suitable: "true" }
+        action: allow
+
+  - id: C4_no_exploitation
+    type: judgment
+    description: Recommendations must not exploit client distress or confusion.
+    schema: no_exploitation
+    prompt: |
+      You are a financial-conduct evaluator. Given a client's stated context (risk profile,
+      notes, any conversation excerpt) and a recommendation, label whether the recommendation
+      appears to exploit the client's distress, confusion, or vulnerability for the advisor's
+      benefit.
+      - exploits_distress: "true" if the recommendation appears to exploit a client who is in
+        a vulnerable state.
+      - exploits_distress: "false" if no such pattern is present.
+      - exploits_distress: "unclear" if the information is insufficient.
+      - rationale: one short sentence (max 30 words). Do NOT propose any action.
+      You are labelling, not deciding.
+    bindings:
+      - when: { exploits_distress: "true", confidence_gte: 0.8 }
+        action: escalate_for_signoff
+      - when: { exploits_distress: "true" }
+        action: route_to_review
+      - when: { exploits_distress: "unclear" }
+        action: route_to_review
+      - when: { exploits_distress: "false" }
         action: allow

@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Run a YAML case through the wealth-management seed policy and print verdict + trace.
 
-Default LLM is the `FakeLLM` that scripts a `SuitabilityClaim(suitable='true', ...)` for every
-case so the CLI runs offline without an Anthropic API key. Use `--llm anthropic` to hit the
-real API (requires `ANTHROPIC_API_KEY`).
+Default LLM is a scripted `FakeLLM` so the CLI runs offline without an Anthropic API key.
+Scripts are picked per case id from `_FAKE_SCRIPTS` below — a stand-in until M2 introduces a
+proper `_demo:` block on each case YAML. Use `--llm anthropic` to hit the real API (requires
+`ANTHROPIC_API_KEY`).
 """
 
 from __future__ import annotations
@@ -20,24 +21,40 @@ sys.path.insert(0, str(_REPO_ROOT / "src"))
 
 from nspk import Verdict, evaluate  # noqa: E402
 from nspk.adapters.synthetic import SyntheticAdapter, load_bundled_policy  # noqa: E402
-from nspk.judgments.suitability import SuitabilityClaim  # noqa: E402
-from nspk.rails.llm_client import AnthropicLLM, FakeLLM  # noqa: E402
+from nspk.rails.llm_client import AnthropicLLM, build_scripted_fake_llm  # noqa: E402
+from nspk.types import Case  # noqa: E402
 
 _HRULE = "=" * 70
 _THIN = "-" * 70
 
+# Demo defaults: both judgment clauses get a benign answer so cases 01 and 02 show clean rail
+# separation. Per-case overrides drive cases that need a different judgment posture.
+_DEFAULT_SCRIPTS: dict[str, dict[str, str]] = {
+    "suitability": {"suitable": "true", "rationale": "Demo default — assumes suitability."},
+    "no_exploitation": {"exploits_distress": "false", "rationale": "Demo default — no distress."},
+}
 
-def _make_llm(kind: str):
+_FAKE_SCRIPTS: dict[str, dict[str, dict[str, str]]] = {
+    "05_no_exploitation_violation": {
+        "suitability": {
+            "suitable": "true",
+            "rationale": "Treasury ladder is consistent with the conservative profile.",
+        },
+        "no_exploitation": {
+            "exploits_distress": "true",
+            "rationale": "Wrap-fee pushed on a bereaved client who said she cannot evaluate.",
+        },
+    },
+}
+
+
+def _scripts_for(case: Case) -> dict[str, dict[str, str]]:
+    return _FAKE_SCRIPTS.get(case.id, _DEFAULT_SCRIPTS)
+
+
+def _make_llm(kind: str, case: Case):
     if kind == "fake":
-        # Demo default: always labels recommendations as suitable. This makes case 01 a clean
-        # allow and case 02 a pure fact-rail block — exercising the separation of the two rails
-        # without conflating their contributions.
-        return FakeLLM(
-            response=SuitabilityClaim(
-                suitable="true",
-                rationale="Demo FakeLLM default — assumes suitability.",
-            )
-        )
+        return build_scripted_fake_llm(_scripts_for(case))
     if kind == "anthropic":
         api_key = os.environ.get("ANTHROPIC_API_KEY")
         if not api_key:
@@ -107,7 +124,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.policy is not None
         else load_bundled_policy("wealth_management")
     )
-    llm = _make_llm(args.llm)
+    llm = _make_llm(args.llm, case)
     decision = evaluate(case=case, policy=policy, llm=llm)
 
     if args.json:

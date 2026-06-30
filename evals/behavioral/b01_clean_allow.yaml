@@ -9,6 +9,9 @@ fake_llm:
   suitability:
     suitable: "true"
     rationale: Aligned with the stated moderate profile.
+  no_exploitation:
+    exploits_distress: "false"
+    rationale: No distress signals; recommendation matches profile.
 case:
   id: b01_case
   description: Two advisors, suitable recommendation.

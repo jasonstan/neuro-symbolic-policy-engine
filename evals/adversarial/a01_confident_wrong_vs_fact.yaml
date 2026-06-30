@@ -11,6 +11,9 @@ fake_llm:
     rationale: >
       Recommendation aligns with the stated profile; advisor relationship details outside
       scope of this clause.
+  no_exploitation:
+    exploits_distress: "false"
+    rationale: No distress signals.
 case:
   id: a01_case
   description: Same advisor opens AND funds, with a permissive judgment claim.

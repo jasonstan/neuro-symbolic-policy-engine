@@ -3,7 +3,8 @@
 Each registered judgment exposes:
   - `schema`           : the Pydantic model for the typed claim (constrains form, not truth)
   - `default_prompt`   : the system prompt (policy YAML can override per clause)
-  - `build_user_message(case)` : the per-clause projection of the Case content into a user msg
+  - `build_user_message(case) -> str`: the per-clause projection of the Case content into the
+                                       LLM's user message.
 """
 
 from collections.abc import Callable
@@ -12,6 +13,15 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from nspk.judgments.no_exploitation import (
+    DEFAULT_PROMPT as NO_EXPLOITATION_PROMPT,
+)
+from nspk.judgments.no_exploitation import (
+    NoExploitationClaim,
+)
+from nspk.judgments.no_exploitation import (
+    build_user_message as no_exploitation_build_user_message,
+)
 from nspk.judgments.suitability import (
     DEFAULT_PROMPT as SUITABILITY_PROMPT,
 )
@@ -37,5 +47,11 @@ JUDGMENT_SCHEMAS: dict[str, JudgmentSchemaEntry] = {
         schema=SuitabilityClaim,
         default_prompt=SUITABILITY_PROMPT,
         build_user_message=suitability_build_user_message,
+    ),
+    "no_exploitation": JudgmentSchemaEntry(
+        name="no_exploitation",
+        schema=NoExploitationClaim,
+        default_prompt=NO_EXPLOITATION_PROMPT,
+        build_user_message=no_exploitation_build_user_message,
     ),
 }

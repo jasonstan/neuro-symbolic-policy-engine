@@ -45,11 +45,12 @@ def test_dual_role_clears_clean_case(case_clean_allow, policy, fake_llm_suitable
 def test_block_wins_over_allow_in_merge(
     case_dual_role_violation, policy, fake_llm_suitable_true
 ):
-    # FakeLLM scripts suitable=true → C3 contributes allow. C1 contributes block. Merge: block.
+    # FakeLLM scripts suitable=true (C3 → allow) and exploits_distress=false (C4 → allow).
+    # C1 contributes block. Merge picks block as the most severe.
     decision = _run(case_dual_role_violation, policy, fake_llm_suitable_true)
     assert decision.verdict.value == "block"
     merge = next(s for s in decision.trace.steps if s.kind == "merge")
-    assert [v.value for v in merge.contributed_actions] == ["block", "allow"]
+    assert [v.value for v in merge.contributed_actions] == ["block", "allow", "allow"]
     assert merge.selected.value == "block"
 
 

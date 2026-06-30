@@ -31,8 +31,7 @@ from pydantic import BaseModel, Field
 
 from nspk import Verdict, evaluate
 from nspk.adapters.synthetic import load_bundled_policy
-from nspk.judgments import JUDGMENT_SCHEMAS
-from nspk.rails.llm_client import FakeLLM
+from nspk.rails.llm_client import build_scripted_fake_llm
 from nspk.types import Case, Decision
 
 
@@ -72,39 +71,6 @@ class EvalResult(BaseModel):
     description: str
     status: EvalStatus
     reason: str | None = None
-
-
-# ---------- scripted FakeLLM ----------
-
-def build_scripted_fake_llm(scripts: dict[str, dict[str, Any]]) -> FakeLLM:
-    """Build a FakeLLM whose responder dispatches by judgment-schema registration name.
-
-    `scripts` keys are JUDGMENT_SCHEMAS registration keys (e.g. ``"suitability"``); values are
-    the response payload for that schema. The returned FakeLLM raises a clear error if the
-    engine asks for a schema not covered by the script — important for catching missing scripts
-    when a policy gains a new judgment clause.
-    """
-    by_class_name: dict[str, BaseModel] = {}
-    for reg_name, payload in scripts.items():
-        try:
-            entry = JUDGMENT_SCHEMAS[reg_name]
-        except KeyError as exc:
-            raise KeyError(
-                f"FakeLLM script references unknown judgment schema {reg_name!r}. "
-                f"Registered: {sorted(JUDGMENT_SCHEMAS)}"
-            ) from exc
-        by_class_name[entry.schema.__name__] = entry.schema.model_validate(payload)
-
-    def responder(*, system: str, user: str, schema: type[BaseModel]) -> BaseModel:
-        try:
-            return by_class_name[schema.__name__]
-        except KeyError as exc:
-            raise KeyError(
-                f"FakeLLM has no scripted response for {schema.__name__}. "
-                f"Scripts cover: {sorted(by_class_name)}"
-            ) from exc
-
-    return FakeLLM(responder=responder)
 
 
 # ---------- runners ----------

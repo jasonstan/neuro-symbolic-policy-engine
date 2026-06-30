@@ -9,6 +9,9 @@ fake_llm:
   suitability:
     suitable: "true"
     rationale: Aligned with the stated conservative profile.
+  no_exploitation:
+    exploits_distress: "false"
+    rationale: No distress signals.
 case:
   id: b02_case
   description: Same advisor opens AND funds; suitable recommendation.

@@ -39,6 +39,7 @@ Tests in `tests/` keep their role; the eval suite layers above, not replaces.
 |---|---|---|---|
 | C1 Disaggregation | `behavioral/b01_clean_allow.yaml` | behavioral | PASS |
 | C1 Disaggregation | `behavioral/b02_fact_violation_dual_role.yaml` | behavioral | PASS |
+| C1 Disaggregation | `behavioral/b05_no_exploitation_escalates.yaml` | behavioral | PASS |
 | C2 Boundary integrity | `adversarial/a02_prompt_injection_in_content.py` | adversarial | PASS |
 | C3 Fact authority | `adversarial/a01_confident_wrong_vs_fact.yaml` | adversarial | PASS |
 | C4 Policy-bound action | `behavioral/b03_per_clause_binding.py` | behavioral | PASS |

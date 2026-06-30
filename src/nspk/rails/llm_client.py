@@ -47,6 +47,42 @@ class AnthropicLLM:
         return response.parsed_output  # type: ignore[no-any-return,attr-defined]
 
 
+def build_scripted_fake_llm(scripts: dict[str, dict[str, Any]]) -> "FakeLLM":
+    """Build a `FakeLLM` whose responder dispatches by judgment-schema registration name.
+
+    `scripts` keys are JUDGMENT_SCHEMAS registration keys (e.g. ``"suitability"``,
+    ``"no_exploitation"``); values are the response payload for that schema. The returned
+    FakeLLM raises a clear error if the engine asks for a schema not covered by the script —
+    important for catching missing scripts when a policy gains a new judgment clause.
+
+    Shared between the eval framework and the test conftest so both layers script the rail the
+    same way.
+    """
+    from nspk.judgments import JUDGMENT_SCHEMAS
+
+    by_class_name: dict[str, BaseModel] = {}
+    for reg_name, payload in scripts.items():
+        try:
+            entry = JUDGMENT_SCHEMAS[reg_name]
+        except KeyError as exc:
+            raise KeyError(
+                f"Scripted FakeLLM references unknown judgment schema {reg_name!r}. "
+                f"Registered: {sorted(JUDGMENT_SCHEMAS)}"
+            ) from exc
+        by_class_name[entry.schema.__name__] = entry.schema.model_validate(payload)
+
+    def responder(*, system: str, user: str, schema: type[BaseModel]) -> BaseModel:
+        try:
+            return by_class_name[schema.__name__]
+        except KeyError as exc:
+            raise KeyError(
+                f"Scripted FakeLLM has no response for {schema.__name__}. "
+                f"Scripts cover: {sorted(by_class_name)}"
+            ) from exc
+
+    return FakeLLM(responder=responder)
+
+
 class FakeLLM:
     """Test-time judgment-rail client. Returns scripted typed claims; never makes network calls.
 
