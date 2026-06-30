@@ -1,4 +1,4 @@
-# Intent brief — neuro-symbolic-policy-kernel
+# Intent brief — neuro-symbolic-policy-engine
 
 *What this artifact is for, who it must convince, and what would prove it wrong. This is the
 value layer the build serves; evals exist to make these claims (and their falsifiers)

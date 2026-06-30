@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "nspk"
 version = "0.1.0"
-description = "Neuro-symbolic policy kernel — a research demonstrator: deterministic fact rail + LLM judgment rail emitting typed claims + a symbolic engine that renders verdicts with full evidence traces."
+description = "Neuro-symbolic policy engine — a research demonstrator: deterministic fact rail + LLM judgment rail emitting typed claims + a symbolic engine that renders verdicts with full evidence traces."
 readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "Jason Stanley" }]

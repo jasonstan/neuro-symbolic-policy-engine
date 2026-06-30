@@ -1,4 +1,4 @@
-"""Neuro-symbolic policy kernel.
+"""Neuro-symbolic policy engine.
 
 Public API:
     evaluate(case, policy, llm) -> Decision

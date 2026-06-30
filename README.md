@@ -1,154 +1,113 @@
-# neuro-symbolic-policy-kernel
+# neuro-symbolic-policy-engine
 
-> **Research demo, not production.** A small, legible artifact showing one way to govern
-> AI-agent actions without sending everything to a single LLM judge.
+A working demo of the layer that decides what an AI agent is allowed to *do*, action
+by action, under an organization's own policy, and records why.
 
-## What this demonstrates
+## What this is for
 
-Six claims (full statements + falsifiers in [`evals/BRIEF.md`](evals/BRIEF.md); each one is
-asserted by a corresponding eval — see [`evals/run_evals.py`](evals/run_evals.py) for the
-current scorecard):
+This is a product artifact, not a product. Its job is to align product, engineering,
+and leadership quickly on four things: what the problem is, who has it, what a
+good-enough solution has to do (the acceptance criteria), and whether a given
+approach can meet them.
 
-| # | Claim |
-|---|---|
-| **C1** | **Disaggregation.** A policy splits into *fact clauses* (deterministic over recorded state) and *judgment clauses* (LLM-emitted typed claims), recombined by the engine into one verdict. |
-| **C2** | **Boundary integrity.** The LLM emits only a *typed claim*; the verdict is a pure function of facts + claims + confidence + policy, computed by the engine. Prompt injection in unstructured content cannot change the verdict beyond what the typed claim alone justifies. |
-| **C3** | **Fact authority.** A hard fact violation is never overridden by a permissive judgment, however confident. |
-| **C4** | **Policy-bound action.** What a typed claim triggers lives in policy YAML, not engine code. The same claim can `block` under one clause and `route_to_review` under another. |
-| **C5** | **Auditability.** Every verdict ships an evidence trace — clauses fired, inputs, fact vs claim, confidence, gating threshold, merge step — readable by someone who didn't write the code. |
-| **C6** | **Honest uncertainty.** *(M3.)* Confidence is independently sourced (ensemble agreement), never the model's self-report; ambiguous judgments route to review. |
+The acceptance criteria are written as runnable evals, with a POC built against them.
+"Do we agree on what done means?" stops being a document people skim and becomes
+something you run and watch pass or fail.
 
-And one explicit known-failure, on purpose: **cross-decision composition** (two
-individually-permitted actions that together violate intent) — the engine is per-decision and
-cannot catch this. See [`evals/adversarial/a04_trajectory_composition.py`](evals/adversarial/a04_trajectory_composition.py).
+## The problem this is about
 
-## What this is
+When an organization puts an AI agent into a real workflow, two kinds of safety are
+reasonably well understood: keeping the model from producing harmful content, and
+securing the infrastructure it runs on. A third layer sits between them and is rarely
+owned as a product: deciding what the agent is actually permitted to do. Which
+actions clear, which get blocked, which go to a human, under whose authority, with a
+record a reviewer can read afterward.
 
-A policy decomposes into two kinds of clause, each routed to the mechanism that fits it, then
-combined in one symbolic engine that is the only thing that renders a verdict.
+That layer is a real, ownable surface. It is also the part most prone to becoming
+theater: a governance story that sounds airtight but, under pressure, lets a
+confident-but-wrong model judgment override a hard fact. This demo shows the surface
+is concrete and testable, and is precise about where it stops.
 
-- **Deterministic fact rail** — clauses that are facts about recorded state (same party did
-  two things; amount exceeded a limit; action preceded its authorization). Rule-evaluated
-  over structured state. No model. Exact every time.
-- **Judgment rail** — clauses that need interpretation (was the recommendation suitable for
-  the client's risk profile; did the agent exploit a client's distress). An LLM evaluates
-  them, but its job is deliberately small: under constrained decoding it must emit a **typed
-  claim** — a value from a fixed enum plus a confidence — never free prose, never the final
-  verdict.
-- **Symbolic engine** — consumes facts and typed claims, applies the named policy clauses,
-  and renders one verdict from `{allow, log, route_to_review, block, escalate_for_signoff}`.
-  Every decision emits a full **evidence trace**: which clauses fired, on which inputs, fact
-  vs claim, the claim's confidence, and the threshold that gated it.
+## The idea in one sentence
 
-## Why typed claims
+A policy for governing an agent's actions can be split into typed deterministic facts
+and typed bounded judgments, then recombined by a transparent engine into a single
+auditable verdict, so the model never decides and a confident-but-wrong judgment
+cannot override a hard fact.
 
-Typing controls the *form* of the model's output so the claim is consumable by the engine —
-it does **not** make the claim *true*. The architectural payoff: the LLM is reduced to a
-typed labeller, the verdict is determined by composable policy rules over those labels (plus
-facts), and the trace shows exactly how the verdict was reached.
+The "neuro-symbolic" label refers to that split: a deterministic rule engine (the
+symbolic side) consuming bounded LLM judgments (the neural side), with the engine,
+never the model, making the call.
 
-Two commitments make this load-bearing:
+## Where to look first
 
-1. **Per-clause action binding.** Same `suitable=false` claim can `block` under one clause
-   and `route_to_review` under another. Asserted by eval C4.
-2. **Confidence is independently sourced.** Never the model's self-report. This POC derives
-   confidence from ensemble agreement (M3); the interface accepts swap-in estimators
-   (distance-from-traffic, trained error-predictors) later. Asserted by eval C6.
+- **What it claims, and what would prove each claim wrong:** `evals/BRIEF.md`. Six
+  claims, each paired with the falsifier that would make a skeptic concede it is
+  false.
+- **Whether the claims hold right now:** the eval scorecard,
+  `uv run python -m evals.run_evals`. This is the review surface, not raw test
+  output.
+- **How "done" gets decided:** `docs/adrs/0004-eval-driven-acceptance.md`.
+- **Where it stops:** the limitations section below, and the known-failure evals.
 
-## Status
+## How acceptance works
 
-**Eval-driven acceptance is live** (foundation commit, 2026-06-30). The brief, the evals,
-and the scorecard are the milestone-review surface — see [ADR-0004](docs/adrs/0004-eval-driven-acceptance.md).
-M1 (vertical slice) shipped; M2 (complete seed policy) is next under the new bar.
+A milestone is not done when the code runs. It is done when the evals for the claims
+it advances pass. The acceptance criteria (`BRIEF.md`) were written before the code
+that satisfies them, and every change has to name the claim it advances, or flag that
+it advances none, before being built. The scorecard, grouped by claim, is what you
+read to decide whether a milestone is real. This keeps the demo from drifting away
+from what it is meant to prove as features land.
 
-## Run
+## Limitations
+
+- **No trajectory control.** Two actions that are each permitted but together violate
+  intent are out of scope for this flat, per-decision engine. This ships as a
+  known-failure eval rather than being hidden. Trajectory-level control is on the
+  backlog.
+- **Confidence is a POC mechanism,** not a calibrated estimate, with a clean swap-in
+  point.
+- **One scenario** (wealth-management conduct), not breadth. Generality is argued
+  through the adapter seam, not demonstrated across domains.
+- **Not legally authoritative.** The policy clauses are illustrative and do not
+  encode current regulation.
+- **A demo, not production.** No scale, latency, or hardening claims.
+
+## How it was built
+
+Built with an AI coding agent (Claude Code), directed from the written acceptance
+criteria above rather than a feature list: thesis and falsifiers first, evals as the
+bar, every change mapped to a claim.
+
+## Repo map
+
+```
+.
+├── evals/
+│   ├── BRIEF.md                  intent brief — 6 claims, falsifiers, scope boundary
+│   ├── run_evals.py              CLI; prints the scorecard grouped by claim
+│   ├── _framework.py             EvalSpec, EvalResult, scripted FakeLLM, runners
+│   ├── behavioral/               claim demonstrations under representative inputs
+│   └── adversarial/              claim falsifiers + one known-failure (on purpose)
+├── docs/adrs/                    architectural decision records (0001–0004)
+├── src/nspk/                     the installable library (Python import name `nspk`)
+│   ├── api.py                    evaluate(case, policy, llm) -> Decision
+│   ├── types.py                  Case, Policy, Verdict, TypedClaim, Decision, Trace
+│   ├── engine/                   the symbolic engine + severity merge + trace builder
+│   ├── rails/                    fact_rail (rules) and judgment_rail (LLM client)
+│   ├── judgments/                registered typed-claim Pydantic schemas
+│   ├── adapters/                 CaseAdapter Protocol + synthetic YAML adapter
+│   └── policies/                 bundled wealth-management policy YAML
+├── examples/                     human-runnable cases for the CLI demo
+├── tests/                        correctness gate (types, determinism, well-typedness)
+├── README.md  CLAUDE.md  LICENSE  pyproject.toml
+```
+
+## Quick start
 
 ```bash
-uv sync
-cp .env.example .env                          # only needed for --llm=anthropic
-uv run pytest                                 # offline; correctness
-uv run python -m evals.run_evals              # offline; thesis integrity (scorecard)
+uv sync                                                # install Python + deps
+uv run python -m evals.run_evals                       # scorecard — read this first
+uv run pytest                                          # correctness tests
 uv run python examples/run_examples.py examples/cases/01_clean_allow.yaml
 ```
-
-## Architecture
-
-ADRs in [`docs/adrs/`](docs/adrs/):
-
-- [ADR-0001](docs/adrs/0001-symbolic-engine-choice.md) — embedded Datalog-style evaluator over OPA/Rego
-- [ADR-0002](docs/adrs/0002-judgment-rail-constrained-decoding.md) — Anthropic Structured Outputs for the judgment rail
-- [ADR-0003](docs/adrs/0003-scope-synthetic-hero-scenario.md) — synthetic hero scenario; gym + DoomArena as backlog seams
-- [ADR-0004](docs/adrs/0004-eval-driven-acceptance.md) — eval-driven acceptance, on top of pytest
-
-## Evals
-
-Three tiers in [`evals/`](evals/) — each eval mapped to a claim in the brief:
-
-- **Behavioral** — cases-with-expected-decisions that demonstrate a claim holds.
-- **Adversarial** — cases designed to *break* a claim. If they pass, the claim survived.
-- **Known-failures** — cases the architecture cannot handle, on purpose, with the reason
-  recorded inline. Surface as `XFAIL`; flip to `XPASS` (and CI-fail) if the architecture
-  ever starts catching them.
-
-Sample scorecard (foundation commit):
-
-```
-══════════════════════════════════════════════════════════════════════════════
- NSPK eval scorecard  ·  2026-06-30  ·  policy: wealth_management_v1
-══════════════════════════════════════════════════════════════════════════════
-
- C1  Disaggregation                                                  2/2 PASS
- C2  Boundary integrity                                              1/1 PASS
- C3  Fact authority                                                  1/1 PASS
- C4  Policy-bound action                                             1/1 PASS
- C5  Auditability                                                    1/1 PASS
- C6  Honest uncertainty                                          PENDING (M3)
-
- Known-failures (on purpose):
-   a04_trajectory_composition                                       XFAIL
-     ↳ Engine is per-decision; cross-decision composition is documented backlog.
-──────────────────────────────────────────────────────────────────────────────
- Totals:  6 pass · 1 pending · 1 known-failure
-══════════════════════════════════════════════════════════════════════════════
-```
-
-See [`evals/README.md`](evals/README.md) for tier conventions and the full claim→eval table.
-
-## Milestones
-
-Each milestone names the claims it advances and the evals that gate it. A milestone is
-*done* when `pytest` is green, the relevant evals pass, and the adversarial set has been
-extended to probe new surface.
-
-| Milestone | Status | Claims advanced | Eval gates |
-|---|---|---|---|
-| M0 — scaffolding, ADRs, importability gate | ✅ | — | importability test |
-| M1 — thin vertical slice (1 fact + 1 judgment → verdict + trace) | ✅ | C1, C5 (mechanism) | (lifted into behavioral evals at foundation) |
-| **Foundation — intent brief + evals + acceptance bar** | ✅ (this commit) | encodes all claims | scorecard renders; load-bearing trio (C2, C3, trajectory known-failure) all green |
-| M2 — complete the 4-clause seed policy + cases | next | C1, C3, C4, C5 (extended) | C2 settlement-window + C4 no-exploitation evals; new adversarial probes for each new judgment surface |
-| M3 — ensemble-agreement confidence estimator | future | C6 (full) | `a03_ambiguous_judgment` flips PENDING → PASS |
-| M4 — web UI that shows the decision assembling | future | C5 (human-readable rendering) | trace renders in browser; `b04_trace_shape` still passes |
-| M5 — polish (architecture diagram, README pass) | future | — | final scorecard committed in README |
-
-## Backlog (intentionally not built)
-
-The synthetic wealth-management scenario is the hero artifact. Two future extensions build on
-the adapter and library seams; **neither is in this codebase**:
-
-- **EnterpriseOps-Gym real-data track** — map captured gym episodes through the `CaseAdapter`
-  interface to show the engine generalizes beyond the synthetic scenario.
-- **DoomArena engine-as-defense eval** — the policy engine as a defense under a configured
-  threat model, measuring residual attack success rate.
-
-A third is on-architecture but explicitly out of reach for the per-decision engine:
-
-- **Cross-decision / trajectory composition.** Two individually-permitted actions that
-  jointly violate intent. Surfaced as a `known-failure` eval, not hidden. See
-  [`evals/adversarial/a04_trajectory_composition.py`](evals/adversarial/a04_trajectory_composition.py).
-
-See [ADR-0003](docs/adrs/0003-scope-synthetic-hero-scenario.md) for the scoping rationale and
-[`evals/BRIEF.md`](evals/BRIEF.md) §"Where this stops" for the full boundary list.
-
-## License
-
-MIT. See [LICENSE](LICENSE).
