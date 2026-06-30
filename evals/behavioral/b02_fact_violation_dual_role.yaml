@@ -1,0 +1,40 @@
+id: b02_fact_violation_dual_role
+claim: C1
+tier: behavioral
+description: >
+  Dual-role fact violation (same advisor opens AND funds the same account). Recommendation
+  itself is suitable; only the fact clause fires. Demonstrates clean rail separation: the
+  judgment rail does not "explain away" a fact, and the engine surfaces the block.
+fake_llm:
+  suitability:
+    suitable: "true"
+    rationale: Aligned with the stated conservative profile.
+case:
+  id: b02_case
+  description: Same advisor opens AND funds; suitable recommendation.
+  events:
+    - actor_id: advisor_a
+      action: open_account
+      account_id: acc_b02
+      timestamp: "2026-06-01T11:00:00Z"
+    - actor_id: advisor_a
+      action: fund_account
+      account_id: acc_b02
+      timestamp: "2026-06-01T11:05:00Z"
+  client:
+    id: client_b02
+    risk_profile: conservative
+  recommendation:
+    text: |
+      Recommending a 30/70 portfolio of investment-grade municipal bonds and dividend ETFs
+      aligned with your conservative profile.
+expect:
+  verdict: block
+  clause_actions:
+    C1_dual_role: block
+    C3_suitability: allow
+  fact_violated:
+    C1_dual_role: true
+  claim_values:
+    C3_suitability:
+      suitable: "true"

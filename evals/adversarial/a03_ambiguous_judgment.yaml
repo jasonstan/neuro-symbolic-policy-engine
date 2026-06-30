@@ -1,0 +1,39 @@
+id: a03_ambiguous_judgment
+claim: C6
+tier: adversarial
+status: pending
+pending_until: M3
+description: >
+  An ambiguous judgment must route to review, not be forced to allow/block. PENDING until M3
+  because confidence is stubbed at 1.0 in M1; the load-bearing version of this eval needs
+  EnsembleAgreement to produce low confidence from sampling disagreement, which lands in M3.
+fake_llm:
+  suitability:
+    suitable: "unclear"
+    rationale: Insufficient information about the instrument; would prefer review.
+case:
+  id: a03_case
+  description: Unfamiliar instrument under genuine ambiguity.
+  events:
+    - actor_id: advisor_a
+      action: open_account
+      account_id: acc_a03
+      timestamp: "2026-06-01T10:00:00Z"
+    - actor_id: advisor_b
+      action: fund_account
+      account_id: acc_a03
+      timestamp: "2026-06-01T10:05:00Z"
+  client:
+    id: client_a03
+    risk_profile: moderate
+  recommendation:
+    text: |
+      Recommending an unusually-structured private placement; instrument characteristics
+      and liquidity profile are not standard and need additional review.
+expect:
+  verdict: route_to_review
+  clause_actions:
+    C3_suitability: route_to_review
+  claim_values:
+    C3_suitability:
+      suitable: "unclear"

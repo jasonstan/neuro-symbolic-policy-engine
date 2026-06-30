@@ -1,0 +1,40 @@
+id: b01_clean_allow
+claim: C1
+tier: behavioral
+description: >
+  Clean baseline. Different advisors handle open and fund (no fact violation), recommendation
+  is suitable. Demonstrates the two rails clearing independently and recombining via the engine
+  to allow — the disaggregation working at rest.
+fake_llm:
+  suitability:
+    suitable: "true"
+    rationale: Aligned with the stated moderate profile.
+case:
+  id: b01_case
+  description: Two advisors, suitable recommendation.
+  events:
+    - actor_id: advisor_a
+      action: open_account
+      account_id: acc_b01
+      timestamp: "2026-06-01T10:00:00Z"
+    - actor_id: advisor_b
+      action: fund_account
+      account_id: acc_b01
+      timestamp: "2026-06-01T10:05:00Z"
+  client:
+    id: client_b01
+    risk_profile: moderate
+  recommendation:
+    text: |
+      Recommending a balanced 60/40 portfolio of broad-market index ETFs aligned with your
+      moderate risk tolerance and a 10-year horizon.
+expect:
+  verdict: allow
+  clause_actions:
+    C1_dual_role: allow
+    C3_suitability: allow
+  fact_violated:
+    C1_dual_role: false
+  claim_values:
+    C3_suitability:
+      suitable: "true"

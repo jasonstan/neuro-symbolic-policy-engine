@@ -8,7 +8,8 @@ auditability, and a demo that makes the architecture legible. Do not optimize fo
 ```bash
 uv sync                                       # install (uv fetches Python 3.11+ if needed)
 cp .env.example .env && $EDITOR .env          # only required for --llm=anthropic
-uv run pytest                                 # offline; uses FakeLLM
+uv run pytest                                 # offline; correctness
+uv run python -m evals.run_evals              # offline; thesis integrity (scorecard)
 uv run python examples/run_examples.py examples/cases/01_clean_allow.yaml
 uv run uvicorn demo.app:app --reload          # web demo (lands in M4)
 ```
@@ -37,6 +38,24 @@ The engine is the only component that decides; the LLM never emits the verdict.
 If a change to this repo would break any of (1)–(5), stop and surface the trade-off in the PR
 description before implementing.
 
+## Acceptance bar (eval-driven, not pytest-driven)
+
+`evals/BRIEF.md` is the source of truth for what this artifact claims (C1–C6, each with a
+falsifier) and where it stops on purpose. A milestone is **not** done when `pytest` is green.
+It is done when:
+
+1. `uv run pytest` is green (correctness gate), AND
+2. `uv run python -m evals.run_evals` is green — i.e., the behavioral evals for the
+   milestone's claims pass, AND
+3. The adversarial set in `evals/adversarial/` has been **extended** to probe any new surface
+   the milestone introduces.
+
+**Every new clause, feature, or refactor must name the claim in `BRIEF.md` it advances.** If a
+change advances no claim, surface that before building. See ADR-0004.
+
+`PENDING` evals (gated on a future milestone) and `XFAIL` known-failures (documented limits)
+are expected and do not fail CI. `FAIL` and unexpected `XPASS` do.
+
 ## Conventions
 
 - Python 3.11+, type hints everywhere, Pydantic v2 for all boundary types.
@@ -53,16 +72,21 @@ description before implementing.
 
 ## Testing conventions
 
+Tests in `tests/` are the **correctness** gate (types hold, fact rail deterministic,
+typed-claim well-formed). Evals in `evals/` are the **thesis integrity** gate (the claims in
+`BRIEF.md` survive their falsifiers). Keep them in separate directories.
+
 - `tests/unit/test_fact_rail_determinism.py` — same inputs ⇒ byte-identical trace.
 - `tests/unit/test_judgment_claim_well_typed.py` — uses `FakeLLM`. Asserts the typed claim
   conforms to the schema even when the fake model returns garbage. **Do not delete this test.**
-- `tests/unit/test_engine_per_clause_binding.py` (M2) — same claim, different policies, different
-  verdicts.
+- Per-clause action binding is asserted as an **eval** (`evals/behavioral/b03_per_clause_binding.py`),
+  not a pytest test, because it advances claim C4 and belongs on the scorecard.
 - Judgment-rail tests must use `FakeLLM` — no live network in `pytest`.
 - A separate `pytest -m live` mark runs the real-API smoke test (one call, opt-in).
 
 ## When in doubt
 
 If a refactor would make the engine harder to import as a library, or would let the model emit
-a verdict, or would hard-code an action in engine code that should live in policy config —
-push back. These are the demo's whole point.
+a verdict, or would hard-code an action in engine code that should live in policy config — or
+would land work that advances no claim in `evals/BRIEF.md` — push back. These are the demo's
+whole point.

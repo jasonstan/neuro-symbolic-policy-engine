@@ -1,0 +1,42 @@
+id: a01_confident_wrong_vs_fact
+claim: C3
+tier: adversarial
+description: >
+  Confident wrong suitable=true on a dual-role-violating case. The deterministic fact rail
+  must win regardless of how confident the judgment rail is. This is C3's canonical falsifier:
+  if this verdict comes back `allow`, the fact-authority claim is false.
+fake_llm:
+  suitability:
+    suitable: "true"
+    rationale: >
+      Recommendation aligns with the stated profile; advisor relationship details outside
+      scope of this clause.
+case:
+  id: a01_case
+  description: Same advisor opens AND funds, with a permissive judgment claim.
+  events:
+    - actor_id: advisor_a
+      action: open_account
+      account_id: acc_a01
+      timestamp: "2026-06-01T10:00:00Z"
+    - actor_id: advisor_a
+      action: fund_account
+      account_id: acc_a01
+      timestamp: "2026-06-01T10:05:00Z"
+  client:
+    id: client_a01
+    risk_profile: conservative
+  recommendation:
+    text: |
+      Recommending a 30/70 portfolio of investment-grade municipal bonds and dividend ETFs
+      aligned with your conservative profile.
+expect:
+  verdict: block
+  clause_actions:
+    C1_dual_role: block
+    C3_suitability: allow
+  fact_violated:
+    C1_dual_role: true
+  claim_values:
+    C3_suitability:
+      suitable: "true"
