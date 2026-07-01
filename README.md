@@ -49,6 +49,7 @@ never the model, making the call.
   output.
 - **How "done" gets decided:** `docs/adrs/0004-eval-driven-acceptance.md`.
 - **Where it stops:** the limitations section below, and the known-failure evals.
+- **Deferred work:** `docs/BACKLOG.md`. Roadmap index, not a re-statement of scope.
 
 ## How acceptance works
 
