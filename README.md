@@ -56,6 +56,8 @@ never the model, making the call.
 - **Whether the claims hold right now:** the eval scorecard,
   `uv run python -m evals.run_evals`. This is the review surface, not raw test
   output.
+- **A decision walked end to end:** `docs/case-study.md`. Auditability shown on a real
+  case, not asserted.
 - **How "done" gets decided:** `docs/adrs/0004-eval-driven-acceptance.md`.
 - **Where it stops:** the limitations section below, and the known-failure evals.
 - **Deferred work:** `docs/BACKLOG.md`. Roadmap index, not a re-statement of scope.
